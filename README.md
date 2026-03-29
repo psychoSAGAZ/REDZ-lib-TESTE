@@ -2694,61 +2694,59 @@ end
 	MinimizeButton.Activated:Connect(Window.MinimizeBtn)
 	return Window
 end
---====================================
--- RUNTIME THEME SYSTEM (FINAL PATCH)
---====================================
+----------------------------------------------------------------
+-- 🔥 REALTIME THEME SYSTEM
+----------------------------------------------------------------
 
 function MyLibrary:SetTheme(themeName)
 
-    if not self.Themes[themeName] then
-        warn("Tema não encontrado:", themeName)
+    local Theme = self.Themes[themeName]
+    if not Theme then
+        warn("Tema não existe:", themeName)
         return
     end
 
     self.Save.Theme = themeName
-    local Theme = self.Themes[themeName]
 
-    local PlayerGui = game:GetService("Players")
-        .LocalPlayer:WaitForChild("PlayerGui")
+    -- percorre todos objetos criados
+    for _,obj in pairs(self.Instances) do
 
-    -- procura GUI da Redz
-    local Gui
+        if typeof(obj) == "Instance" then
 
-    for _,v in ipairs(PlayerGui:GetChildren()) do
-        if v:IsA("ScreenGui") and v.Name:lower():find("redz") then
-            Gui = v
-            break
+            -- Backgrounds
+            if obj:IsA("Frame")
+            or obj:IsA("ScrollingFrame")
+            or obj:IsA("TextButton")
+            or obj:IsA("ImageButton") then
+
+                if Theme["Color Hub 2"] then
+                    pcall(function()
+                        obj.BackgroundColor3 = Theme["Color Hub 2"]
+                    end)
+                end
+            end
+
+            -- Textos
+            if obj:IsA("TextLabel")
+            or obj:IsA("TextButton")
+            or obj:IsA("TextBox") then
+
+                pcall(function()
+                    obj.TextColor3 = Theme["Color Text"]
+                end)
+            end
+
+            -- Stroke
+            local stroke = obj:FindFirstChildOfClass("UIStroke")
+            if stroke then
+                pcall(function()
+                    stroke.Color = Theme["Color Stroke"]
+                end)
+            end
         end
     end
 
-    if not Gui then
-        warn("Redz GUI não encontrada")
-        return
-    end
-
-    -- atualizar tudo
-    for _,obj in ipairs(Gui:GetDescendants()) do
-
-        -- BACKGROUNDS
-        if obj:IsA("Frame")
-        or obj:IsA("TextButton")
-        or obj:IsA("ScrollingFrame") then
-
-            obj.BackgroundColor3 = Theme["Color Hub 2"]
-        end
-
-        -- TEXTOS
-        if obj:IsA("TextLabel")
-        or obj:IsA("TextButton") then
-
-            obj.TextColor3 = Theme["Color Text"]
-        end
-
-        -- STROKES
-        if obj:IsA("UIStroke") then
-            obj.Color = Theme["Color Stroke"]
-        end
-
-    end
 end
+
+----------------------------------------------------------------
 return MyLibrary
