@@ -63,6 +63,17 @@ local MyLibrary = {
 	Flags = {},
 	Tabs = {},
 	Icons = (function()
+-- Adiciona isto dentro da sua MyLibrary para facilitar a troca de temas
+function MyLibrary:SetTheme(themeName)
+    local newTheme = MyLibrary.Themes[themeName]
+    if newTheme then
+        MyLibrary.Save.Theme = themeName
+        -- Aqui a lib precisaria de uma lógica para atualizar os objetos existentes
+        -- Como é para estudos, vamos focar na lógica de seleção primeiro! 🦄
+        print("Tema alterado para: " .. themeName)
+    end
+end
+
 		return {
 			["accessibility"] = "rbxassetid://10709751939",
 			["activity"] = "rbxassetid://10709752035",
