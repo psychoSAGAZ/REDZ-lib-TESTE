@@ -2694,5 +2694,61 @@ end
 	MinimizeButton.Activated:Connect(Window.MinimizeBtn)
 	return Window
 end
+--====================================
+-- RUNTIME THEME SYSTEM (FINAL PATCH)
+--====================================
 
+function MyLibrary:SetTheme(themeName)
+
+    if not self.Themes[themeName] then
+        warn("Tema não encontrado:", themeName)
+        return
+    end
+
+    self.Save.Theme = themeName
+    local Theme = self.Themes[themeName]
+
+    local PlayerGui = game:GetService("Players")
+        .LocalPlayer:WaitForChild("PlayerGui")
+
+    -- procura GUI da Redz
+    local Gui
+
+    for _,v in ipairs(PlayerGui:GetChildren()) do
+        if v:IsA("ScreenGui") and v.Name:lower():find("redz") then
+            Gui = v
+            break
+        end
+    end
+
+    if not Gui then
+        warn("Redz GUI não encontrada")
+        return
+    end
+
+    -- atualizar tudo
+    for _,obj in ipairs(Gui:GetDescendants()) do
+
+        -- BACKGROUNDS
+        if obj:IsA("Frame")
+        or obj:IsA("TextButton")
+        or obj:IsA("ScrollingFrame") then
+
+            obj.BackgroundColor3 = Theme["Color Hub 2"]
+        end
+
+        -- TEXTOS
+        if obj:IsA("TextLabel")
+        or obj:IsA("TextButton") then
+
+            obj.TextColor3 = Theme["Color Text"]
+        end
+
+        -- STROKES
+        if obj:IsA("UIStroke") then
+            obj.Color = Theme["Color Stroke"]
+        end
+
+    end
+end
 return MyLibrary
