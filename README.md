@@ -63,17 +63,6 @@ local MyLibrary = {
 	Flags = {},
 	Tabs = {},
 	Icons = (function()
--- Adiciona isto dentro da sua MyLibrary para facilitar a troca de temas
-function MyLibrary:SetTheme(themeName)
-    local newTheme = MyLibrary.Themes[themeName]
-    if newTheme then
-        MyLibrary.Save.Theme = themeName
-        -- Aqui a lib precisaria de uma lógica para atualizar os objetos existentes
-        -- Como é para estudos, vamos focar na lógica de seleção primeiro! 🦄
-        print("Tema alterado para: " .. themeName)
-    end
-end
-
 		return {
 			["accessibility"] = "rbxassetid://10709751939",
 			["activity"] = "rbxassetid://10709752035",
@@ -2704,6 +2693,39 @@ end
 	CloseButton.Activated:Connect(Window.CloseBtn)
 	MinimizeButton.Activated:Connect(Window.MinimizeBtn)
 	return Window
+end
+-- [ Adições para Estudos: Troca de Temas ] --
+
+-- Função para atualizar um elemento específico com as cores do novo tema
+local function atualizarElemento(instancia, propriedades)
+	local temaAtual = MyLibrary.Themes[MyLibrary.Save.Theme]
+	for prop, nomeCor in pairs(propriedades) do
+		pcall(function()
+			instancia[prop] = temaAtual[nomeCor]
+		end)
+	end
+end
+
+-- Função principal para mudar o tema e avisar os elementos
+function MyLibrary:SetTheme(nomeNovoTema)
+	if self.Themes[nomeNovoTema] then
+		self.Save.Theme = nomeNovoTema
+		
+		-- Atualiza a cor da Main Window se ela existir
+		if self.Instances.Main then
+			local tema = self.Themes[nomeNovoTema]
+			-- Exemplo: Atualiza o fundo da Window principal
+			if self.Instances.Main:IsA("Frame") then
+				self.Instances.Main.BackgroundColor3 = tema["Color Hub 2"]
+			end
+		end
+		
+		print("✨ Tema alterado para: " .. nomeNovoTema)
+		-- Dica de estudo: Aqui poderias criar um loop para atualizar todos 
+		-- os botões e labels guardados em MyLibrary.Elements! 🐾
+	else
+		warn("❌ Tema não encontrado: " .. tostring(nomeNovoTema))
+	end
 end
 
 return MyLibrary
