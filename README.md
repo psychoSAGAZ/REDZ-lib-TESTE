@@ -2694,59 +2694,5 @@ end
 	MinimizeButton.Activated:Connect(Window.MinimizeBtn)
 	return Window
 end
-----------------------------------------------------------------
--- 🔥 REALTIME THEME SYSTEM
-----------------------------------------------------------------
 
-function MyLibrary:SetTheme(themeName)
-
-    local Theme = self.Themes[themeName]
-    if not Theme then
-        warn("Tema não existe:", themeName)
-        return
-    end
-
-    self.Save.Theme = themeName
-
-    -- percorre todos objetos criados
-    for _,obj in pairs(self.Instances) do
-
-        if typeof(obj) == "Instance" then
-
-            -- Backgrounds
-            if obj:IsA("Frame")
-            or obj:IsA("ScrollingFrame")
-            or obj:IsA("TextButton")
-            or obj:IsA("ImageButton") then
-
-                if Theme["Color Hub 2"] then
-                    pcall(function()
-                        obj.BackgroundColor3 = Theme["Color Hub 2"]
-                    end)
-                end
-            end
-
-            -- Textos
-            if obj:IsA("TextLabel")
-            or obj:IsA("TextButton")
-            or obj:IsA("TextBox") then
-
-                pcall(function()
-                    obj.TextColor3 = Theme["Color Text"]
-                end)
-            end
-
-            -- Stroke
-            local stroke = obj:FindFirstChildOfClass("UIStroke")
-            if stroke then
-                pcall(function()
-                    stroke.Color = Theme["Color Stroke"]
-                end)
-            end
-        end
-    end
-
-end
-
-----------------------------------------------------------------
 return MyLibrary
