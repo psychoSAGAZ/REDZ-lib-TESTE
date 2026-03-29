@@ -9,7 +9,6 @@ local Player = Players.LocalPlayer
 local PlayerMouse = Player:GetMouse()
 
 local MyLibrary = {
-MyLibrary.CurrentTheme = MyLibrary.Save.Theme
 	Themes = {
 			Darker = {
 			["Color Hub 1"] = ColorSequence.new({
@@ -56,6 +55,8 @@ MyLibrary.CurrentTheme = MyLibrary.Save.Theme
 		TabSize = 160,
 		Theme = "Purple"
 	},
+Library.CurrentTheme = Library.Save.Theme
+Library.Instances = {}
 	Settings = {},
 	Connection = {},
 	Instances = {},
