@@ -55,8 +55,6 @@ local MyLibrary = {
 		TabSize = 160,
 		Theme = "Purple"
 	},
-Library.CurrentTheme = Library.Save.Theme
-Library.Instances = {}
 	Settings = {},
 	Connection = {},
 	Instances = {},
@@ -2695,27 +2693,6 @@ end
 	CloseButton.Activated:Connect(Window.CloseBtn)
 	MinimizeButton.Activated:Connect(Window.MinimizeBtn)
 	return Window
-end
-
-function MyLibrary:SetTheme(ThemeName)
-    if not self.Themes[ThemeName] then
-        warn("Tema não existe:", ThemeName)
-        return
-    end
-
-    self.Save.Theme = ThemeName
-    self.CurrentTheme = ThemeName
-
-    local Theme = self.Themes[ThemeName]
-
-    -- atualiza elementos
-    for _,obj in pairs(self.Instances) do
-        if obj:IsA("Frame") or obj:IsA("TextButton") or obj:IsA("TextLabel") then
-            if Theme["Color Hub 2"] then
-                obj.BackgroundColor3 = Theme["Color Hub 2"]
-            end
-        end
-    end
 end
 
 return MyLibrary
