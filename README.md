@@ -2393,7 +2393,7 @@ end
 			return Dropdown
 		end
 				function Tab:AddDropdownPlayer(Configs)
-			local DName = Configs[1] or Configs.Name or Configs.Title or "..."
+			local DName = Configs[1] or Configs.Name or Configs.Title or "Selecionar Jogador"
 			local DDesc = Configs.Desc or Configs.Description or ""
 			local DOptions = Configs[2] or Configs.Options or {}
 			local OpDefault = Configs[3] or Configs.Default or "..."
@@ -2620,7 +2620,7 @@ end
 					
 					-- COMPORTAMENTO EXCLUSIVO DO PLAYER DROPDOWN:
 					-- Verifica se o jogador selecionado anteriormente ainda existe na lista nova
-					if Selected and Selected ~= "..." and Selected ~= "Selecionar Jogador" then
+					if Selected and Selected ~= "..." and Selected ~= "..." then
 						local aindaExiste = false
 						for _, v in ipairs(List) do
 							if v == Selected then aindaExiste = true break end
