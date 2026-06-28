@@ -1367,7 +1367,7 @@ function MyLibrary:SetTheme(NewTheme)
 	SaveJson("SAGAZx HUB lib.json", MyLibrary.Save)
 	Theme = MyLibrary.Themes[NewTheme]
 	
-	Comnection:FireConnection("ThemeChanged", NewTheme)
+	Connection:FireConnection("ThemeChanged", NewTheme)
 	table.foreach(MyLibrary.Instances, function(_,Val)
 		if Val.Type == "Gradient" then
 			Val.Instance.Color = Theme["Color Hub 1"]
