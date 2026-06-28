@@ -2392,7 +2392,8 @@ end
 			end
 			return Dropdown
 		end
-						function Tab:AddDropdownPlayer(Configs)
+		
+		function Tab:AddDropdownPlayer(Configs)
 			local DName = Configs[1] or Configs.Name or Configs.Title or "..."
 			local DDesc = Configs.Desc or Configs.Description or ""
 			local DOptions = Configs[2] or Configs.Options or {}
@@ -2446,14 +2447,14 @@ end
 				Active = true
 			})Make("Corner", DropFrame)Make("Stroke", DropFrame)Make("Gradient", DropFrame, {Rotation = 60})
 			
-			-- 🔍 TEXTBOX CORRIGIDA: Criada usando a mesma base visual ("Button") das opções
+			-- 🔍 SEARCHBOX FIXADA: Travada no topo absoluto independente do AnchorPoint do pai
 			local SearchBox = Make("Button", DropFrame, {
 				Name = "SearchBox",
 				Size = UDim2.new(1, -16, 0, 22),
-				Position = UDim2.new(0, 8, 0, 6)
+				Position = UDim2.new(0, 8, 0, 6),
+				AnchorPoint = Vector2.new(0, 0)
 			})Make("Corner", SearchBox, UDim.new(0, 4))
 			
-			-- Transforma o botão criado em uma TextBox real para digitação, mantendo o fundo idêntico
 			local SearchTextBox = InsertTheme(Create("TextBox", SearchBox, {
 				Size = UDim2.new(1, -10, 1, 0),
 				Position = UDim2.new(0, 8, 0, 0),
@@ -2467,6 +2468,7 @@ end
 				TextXAlignment = "Left"
 			}), "Text")
 			
+			-- O ScrollFrame acompanha a SearchBox estaticamente a partir do topo
 			local ScrollFrame = InsertTheme(Create("ScrollingFrame", DropFrame, {
 				ScrollBarImageColor3 = Theme["Color Theme"],
 				Size = UDim2.new(1, 0, 1, -34),
@@ -2504,10 +2506,12 @@ end
 				return UDim2.fromOffset(152, ScrollSize + 32)
 			end
 			
-			local function CalculateSize()
+			local function CalculateSize(isSearching)
+				if isSearching then return end 
+				
 				local Count = 0
 				for _,Frame in pairs(ScrollFrame:GetChildren()) do
-					if Frame:IsA("Frame") or (Frame:IsA("TextButton") and Frame.Visible == true) then
+					if Frame:IsA("Frame") or Frame.Name == "Option" then
 						Count = Count + 1
 					end
 				end
@@ -2527,24 +2531,34 @@ end
 					CreateTween({DropFrame, "Size", UDim2.new(0, 152, 0, 0), 0.2, true})
 					NoClickFrame.Visible = false
 				else
-					SearchTextBox.Text = "" -- Limpa a pesquisa ao reabrir
+					SearchTextBox.Text = "" 
 					NoClickFrame.Visible = true
 					Arrow.Image = "rbxassetid://10709790948"
 					CreateTween({Arrow, "ImageColor3", Theme["Color Theme"], 0.2})
+					CalculateSize(false) 
 					CreateTween({DropFrame, "Size", GetFrameSize(), 0.2, true})
 				end
 				WaitClick = false
 			end
 			
+			-- 🛠️ CORREÇÃO DO ANCHOR POINT DINÂMICO AQUI
 			local function CalculatePos()
 				local FramePos = SelectedFrame.AbsolutePosition
 				local ScreenSize = ScreenGui.AbsoluteSize
 				local ClampX = math.clamp((FramePos.X / UIScale), 0, ScreenSize.X / UIScale - DropFrame.Size.X.Offset)
 				local ClampY = math.clamp((FramePos.Y / UIScale) , 0, ScreenSize.Y / UIScale)
 				
-				local NewPos = UDim2.fromOffset(ClampX, ClampY)
-				local AnchorPoint = FramePos.Y > ScreenSize.Y / 1.4 and 1 or ScrollSize > 80 and 0.5 or 0
-				DropFrame.AnchorPoint = Vector2.new(0, AnchorPoint)
+				-- Se abrir para cima (Y > limite), usamos âncora 1, mas forçamos o cálculo correto de posição offset
+				local AnchorPointY = FramePos.Y > ScreenSize.Y / 1.4 and 1 or 0
+				DropFrame.AnchorPoint = Vector2.new(0, AnchorPointY)
+				
+				-- Se a âncora for 1, compensamos a altura da barra selecionada para que o DropFrame nasça exatamente no topo/rodapé correto
+				local TargetY = ClampY
+				if AnchorPointY == 1 then
+					TargetY = ClampY + (SelectedFrame.AbsoluteSize.Y / UIScale)
+				end
+				
+				local NewPos = UDim2.fromOffset(ClampX, TargetY)
 				CreateTween({DropFrame, "Position", NewPos, 0.1})
 			end
 			
@@ -2625,11 +2639,6 @@ end
 								if isReady then
 									PlayerIcon.Image = content
 								end
-								pcall(function()
-									if PlayerIcon.Image == "rbxassetid://0" then
-										PlayerIcon.Image = game:GetService("Players"):GetUserThumbnailAsync(userId, thumbType, thumbSize)
-									end
-								end)
 							end)
 						end
 					end)
@@ -2680,7 +2689,6 @@ end
 					UpdateSelected()
 				end
 				
-				-- 🔍 Lógica de Filtro aplicada na nova SearchTextBox invisível por cima do fundo
 				SearchTextBox:GetPropertyChangedSignal("Text"):Connect(function()
 					local query = string.lower(SearchTextBox.Text)
 					for _, item in pairs(Options) do
@@ -2690,7 +2698,7 @@ end
 							item.nodes[1].Visible = false
 						end
 					end
-					CalculateSize()
+					CalculateSize(true) 
 				end)
 				
 				table.foreach(DOptions, AddOption)
@@ -2703,11 +2711,11 @@ end
 			MainFrame:GetPropertyChangedSignal("Visible"):Connect(Disable)
 			SelectedFrame:GetPropertyChangedSignal("AbsolutePosition"):Connect(CalculatePos)
 			
-			Button.Activated:Connect(CalculateSize)
-			ScrollFrame.ChildAdded:Connect(CalculateSize)
-			ScrollFrame.ChildRemoved:Connect(CalculateSize)
+			Button.Activated:Connect(function() CalculateSize(false) end)
+			ScrollFrame.ChildAdded:Connect(function() CalculateSize(false) end)
+			ScrollFrame.ChildRemoved:Connect(function() CalculateSize(false) end)
 			CalculatePos()
-			CalculateSize()
+			CalculateSize(false)
 			
 			local Dropdown = {}
 			function Dropdown:Visible(...) Funcs:ToggleVisible(Button, ...) end
@@ -2725,6 +2733,7 @@ end
 			end
 			return Dropdown
 		end
+
 		
 				function Tab:AddDropdownSearch(Configs)
 			local DName = Configs[1] or Configs.Name or Configs.Title or "Dropdown"
