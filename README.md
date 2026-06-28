@@ -2392,7 +2392,7 @@ end
 			end
 			return Dropdown
 		end
-		function Tab:AddDropdownPlayer(Configs)
+				function Tab:AddDropdownPlayer(Configs)
 			local DName = Configs[1] or Configs.Name or Configs.Title or "..."
 			local DDesc = Configs.Desc or Configs.Description or ""
 			local DOptions = Configs[2] or Configs.Options or {}
@@ -2446,12 +2446,18 @@ end
 				Active = true
 			})Make("Corner", DropFrame)Make("Stroke", DropFrame)Make("Gradient", DropFrame, {Rotation = 60})
 			
-			-- 🔍 NOVO: Campo de Pesquisa no topo do Dropdown
-			local SearchBox = InsertTheme(Create("TextBox", DropFrame, {
+			-- 🔍 TEXTBOX CORRIGIDA: Criada usando a mesma base visual ("Button") das opções
+			local SearchBox = Make("Button", DropFrame, {
+				Name = "SearchBox",
 				Size = UDim2.new(1, -16, 0, 22),
-				Position = UDim2.new(0, 8, 0, 6),
-				BackgroundTransparency = 0.3,
-				BackgroundColor3 = Theme["Color Stroke"],
+				Position = UDim2.new(0, 8, 0, 6)
+			})Make("Corner", SearchBox, UDim.new(0, 4))
+			
+			-- Transforma o botão criado em uma TextBox real para digitação, mantendo o fundo idêntico
+			local SearchTextBox = InsertTheme(Create("TextBox", SearchBox, {
+				Size = UDim2.new(1, -10, 1, 0),
+				Position = UDim2.new(0, 8, 0, 0),
+				BackgroundTransparency = 1,
 				Font = Enum.Font.GothamMedium,
 				TextSize = 12,
 				TextColor3 = Theme["Color Text"],
@@ -2459,9 +2465,8 @@ end
 				PlaceholderColor3 = Theme["Color Dark Text"],
 				Text = "",
 				TextXAlignment = "Left"
-			}), "Stroke")Make("Corner", SearchBox, UDim.new(0, 4))
+			}), "Text")
 			
-			-- Ajustado tamanho e posição do ScrollFrame para dar espaço à barra de pesquisa
 			local ScrollFrame = InsertTheme(Create("ScrollingFrame", DropFrame, {
 				ScrollBarImageColor3 = Theme["Color Theme"],
 				Size = UDim2.new(1, 0, 1, -34),
@@ -2496,7 +2501,6 @@ end
 			end
 			
 			local function GetFrameSize()
-				-- Considera o espaço extra da barra de pesquisa no cálculo do tamanho total
 				return UDim2.fromOffset(152, ScrollSize + 32)
 			end
 			
@@ -2523,7 +2527,7 @@ end
 					CreateTween({DropFrame, "Size", UDim2.new(0, 152, 0, 0), 0.2, true})
 					NoClickFrame.Visible = false
 				else
-					SearchBox.Text = "" -- Limpa a pesquisa ao reabrir
+					SearchTextBox.Text = "" -- Limpa a pesquisa ao reabrir
 					NoClickFrame.Visible = true
 					Arrow.Image = "rbxassetid://10709790948"
 					CreateTween({Arrow, "ImageColor3", Theme["Color Theme"], 0.2})
@@ -2587,7 +2591,6 @@ end
 						LastCB = 0
 					}
 					
-					-- Aumentado o tamanho Y para 24 para acomodar bem o ícone do avatar
 					local Button = Make("Button", ScrollFrame, {
 						Name = "Option",
 						Size = UDim2.new(1, 0, 0, 24),
@@ -2603,7 +2606,6 @@ end
 						AnchorPoint = Vector2.new(0, 0.5)
 					}), "Theme")Make("Corner", IsSelected, UDim.new(0.5, 0))
 					
-					-- 🖼️ NOVO: Ícone do Avatar do Jogador (Puxando dinamicamente pela API do Roblox)
 					local PlayerIcon = Create("ImageLabel", Button, {
 						Size = UDim2.fromOffset(18, 18),
 						Position = UDim2.new(0, 10, 0.5),
@@ -2612,7 +2614,6 @@ end
 						Image = "rbxassetid://0"
 					})Make("Corner", PlayerIcon, UDim.new(0.5, 0))
 					
-					-- Tentativa assíncrona de carregar o rosto (Bust) do jogador
 					task.spawn(function()
 						local targetPlayer = game:GetService("Players"):FindFirstChild(Name)
 						if targetPlayer then
@@ -2624,19 +2625,18 @@ end
 								if isReady then
 									PlayerIcon.Image = content
 								end
-							 pcall(function()
-								-- Fallback caso o Roblox demore a responder de primeira
-								if PlayerIcon.Image == "rbxassetid://0" then
-									PlayerIcon.Image = game:GetService("Players"):GetUserThumbnailAsync(userId, thumbType, thumbSize)
-								end
-							 end)
+								pcall(function()
+									if PlayerIcon.Image == "rbxassetid://0" then
+										PlayerIcon.Image = game:GetService("Players"):GetUserThumbnailAsync(userId, thumbType, thumbSize)
+									end
+								end)
 							end)
 						end
 					end)
 					
 					local OptioneName = InsertTheme(Create("TextLabel", Button, {
 						Size = UDim2.new(1, -34, 1),
-						Position = UDim2.new(0, 32), -- Empurrado para a direita para dar espaço ao ícone
+						Position = UDim2.new(0, 32),
 						Text = Name,
 						TextColor3 = Theme["Color Text"],
 						Font = Enum.Font.FredokaOne, 
@@ -2680,9 +2680,9 @@ end
 					UpdateSelected()
 				end
 				
-				-- 🔍 NOVO: Lógica de Filtro em Tempo Real
-				SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
-					local query = string.lower(SearchBox.Text)
+				-- 🔍 Lógica de Filtro aplicada na nova SearchTextBox invisível por cima do fundo
+				SearchTextBox:GetPropertyChangedSignal("Text"):Connect(function()
+					local query = string.lower(SearchTextBox.Text)
 					for _, item in pairs(Options) do
 						if query == "" or string.find(string.lower(item.Name), query) then
 							item.nodes[1].Visible = true
@@ -2725,6 +2725,7 @@ end
 			end
 			return Dropdown
 		end
+
 
 		function Tab:AddSlider(Configs)
 			local SName = Configs[1] or Configs.Name or Configs.Title or "Slider!"
