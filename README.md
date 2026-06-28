@@ -2392,7 +2392,7 @@ end
 			end
 			return Dropdown
 		end
-				function Tab:AddDropdownPlayer(Configs)
+		function Tab:AddDropdownPlayer(Configs)
 			local DName = Configs[1] or Configs.Name or Configs.Title or "..."
 			local DDesc = Configs.Desc or Configs.Description or ""
 			local DOptions = Configs[2] or Configs.Options or {}
@@ -2446,9 +2446,26 @@ end
 				Active = true
 			})Make("Corner", DropFrame)Make("Stroke", DropFrame)Make("Gradient", DropFrame, {Rotation = 60})
 			
+			-- 🔍 NOVO: Campo de Pesquisa no topo do Dropdown
+			local SearchBox = InsertTheme(Create("TextBox", DropFrame, {
+				Size = UDim2.new(1, -16, 0, 22),
+				Position = UDim2.new(0, 8, 0, 6),
+				BackgroundTransparency = 0.3,
+				BackgroundColor3 = Theme["Color Stroke"],
+				Font = Enum.Font.GothamMedium,
+				TextSize = 12,
+				TextColor3 = Theme["Color Text"],
+				PlaceholderText = "Pesquisar...",
+				PlaceholderColor3 = Theme["Color Dark Text"],
+				Text = "",
+				TextXAlignment = "Left"
+			}), "Stroke")Make("Corner", SearchBox, UDim.new(0, 4))
+			
+			-- Ajustado tamanho e posição do ScrollFrame para dar espaço à barra de pesquisa
 			local ScrollFrame = InsertTheme(Create("ScrollingFrame", DropFrame, {
 				ScrollBarImageColor3 = Theme["Color Theme"],
-				Size = UDim2.new(1, 0, 1, 0),
+				Size = UDim2.new(1, 0, 1, -34),
+				Position = UDim2.new(0, 0, 0, 32),
 				ScrollBarThickness = 1.5,
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
@@ -2460,7 +2477,7 @@ end
 				Create("UIPadding", {
 					PaddingLeft = UDim.new(0, 8),
 					PaddingRight = UDim.new(0, 8),
-					PaddingTop = UDim.new(0, 5),
+					PaddingTop = UDim.new(0, 2),
 					PaddingBottom = UDim.new(0, 5)
 				}), Create("UIListLayout", {
 					Padding = UDim.new(0, 4)
@@ -2479,17 +2496,18 @@ end
 			end
 			
 			local function GetFrameSize()
-				return UDim2.fromOffset(152, ScrollSize)
+				-- Considera o espaço extra da barra de pesquisa no cálculo do tamanho total
+				return UDim2.fromOffset(152, ScrollSize + 32)
 			end
 			
 			local function CalculateSize()
 				local Count = 0
 				for _,Frame in pairs(ScrollFrame:GetChildren()) do
-					if Frame:IsA("Frame") or Frame.Name == "Option" then
+					if Frame:IsA("Frame") or (Frame:IsA("TextButton") and Frame.Visible == true) then
 						Count = Count + 1
 					end
 				end
-				ScrollSize = (math.clamp(Count, 0, 10) * 25) + 10
+				ScrollSize = (math.clamp(Count, 0, 7) * 26) + 10
 				if NoClickFrame.Visible then
 					NoClickFrame.Visible = true
 					CreateTween({DropFrame, "Size", GetFrameSize(), 0.2, true})
@@ -2505,6 +2523,7 @@ end
 					CreateTween({DropFrame, "Size", UDim2.new(0, 152, 0, 0), 0.2, true})
 					NoClickFrame.Visible = false
 				else
+					SearchBox.Text = "" -- Limpa a pesquisa ao reabrir
 					NoClickFrame.Visible = true
 					Arrow.Image = "rbxassetid://10709790948"
 					CreateTween({Arrow, "ImageColor3", Theme["Color Theme"], 0.2})
@@ -2543,7 +2562,7 @@ end
 						local Slt = v.Value == Selected
 						local nodes = v.nodes
 						CreateTween({nodes[2], "BackgroundTransparency", Slt and 0 or 1, 0.35})
-						CreateTween({nodes[2], "Size", Slt and UDim2.fromOffset(4, 14) or UDim2.fromOffset(4, 4), 0.35})
+						CreateTween({nodes[2], "Size", Slt and UDim2.fromOffset(4, 16) or UDim2.fromOffset(4, 4), 0.35})
 						CreateTween({nodes[3], "TextTransparency", Slt and 0 or 0.4, 0.35})
 					end
 					UpdateLabel()
@@ -2568,30 +2587,63 @@ end
 						LastCB = 0
 					}
 					
+					-- Aumentado o tamanho Y para 24 para acomodar bem o ícone do avatar
 					local Button = Make("Button", ScrollFrame, {
 						Name = "Option",
-						Size = UDim2.new(1, 0, 0, 21),
+						Size = UDim2.new(1, 0, 0, 24),
 						Position = UDim2.new(0, 0, 0.5),
 						AnchorPoint = Vector2.new(0, 0.5)
 					})Make("Corner", Button, UDim.new(0, 4))
 					
 					local IsSelected = InsertTheme(Create("Frame", Button, {
-						Position = UDim2.new(0, 1, 0.5),
+						Position = UDim2.new(0, 2, 0.5),
 						Size = UDim2.new(0, 4, 0, 4),
 						BackgroundColor3 = Theme["Color Theme"],
 						BackgroundTransparency = 1,
 						AnchorPoint = Vector2.new(0, 0.5)
 					}), "Theme")Make("Corner", IsSelected, UDim.new(0.5, 0))
 					
+					-- 🖼️ NOVO: Ícone do Avatar do Jogador (Puxando dinamicamente pela API do Roblox)
+					local PlayerIcon = Create("ImageLabel", Button, {
+						Size = UDim2.fromOffset(18, 18),
+						Position = UDim2.new(0, 10, 0.5),
+						AnchorPoint = Vector2.new(0, 0.5),
+						BackgroundTransparency = 1,
+						Image = "rbxassetid://0"
+					})Make("Corner", PlayerIcon, UDim.new(0.5, 0))
+					
+					-- Tentativa assíncrona de carregar o rosto (Bust) do jogador
+					task.spawn(function()
+						local targetPlayer = game:GetService("Players"):FindFirstChild(Name)
+						if targetPlayer then
+							pcall(function()
+								local userId = targetPlayer.UserId
+								local thumbType = Enum.ThumbnailType.AvatarBust
+								local thumbSize = Enum.ThumbnailSize.Size48x48
+								local content, isReady = game:GetService("Players"):GetUserThumbnailAsync(userId, thumbType, thumbSize)
+								if isReady then
+									PlayerIcon.Image = content
+								end
+							 pcall(function()
+								-- Fallback caso o Roblox demore a responder de primeira
+								if PlayerIcon.Image == "rbxassetid://0" then
+									PlayerIcon.Image = game:GetService("Players"):GetUserThumbnailAsync(userId, thumbType, thumbSize)
+								end
+							 end)
+							end)
+						end
+					end)
+					
 					local OptioneName = InsertTheme(Create("TextLabel", Button, {
-						Size = UDim2.new(1, 0, 1),
-						Position = UDim2.new(0, 10),
+						Size = UDim2.new(1, -34, 1),
+						Position = UDim2.new(0, 32), -- Empurrado para a direita para dar espaço ao ícone
 						Text = Name,
 						TextColor3 = Theme["Color Text"],
 						Font = Enum.Font.FredokaOne, 
 						TextXAlignment = "Left",
 						BackgroundTransparency = 1,
-						TextTransparency = 0.4
+						TextTransparency = 0.4,
+						TextTruncate = "AtEnd"
 					}), "Text")
 					
 					Button.Activated:Connect(function()
@@ -2613,24 +2665,33 @@ end
 				GetOptions = function() return Options end
 				
 				AddNewOptions = function(List)
-					-- Remove as opções antigas da interface gráfica
 					table.foreach(Options, RemoveOption)
-					-- Insere as novas opções enviadas
 					table.foreach(List, AddOption)
 					
-					-- COMPORTAMENTO EXCLUSIVO DO PLAYER DROPDOWN:
-					-- Verifica se o jogador selecionado anteriormente ainda existe na lista nova
-					if Selected and Selected ~= "..." and Selected ~= "..." then
+					if Selected and Selected ~= "..." then
 						local aindaExiste = false
 						for _, v in ipairs(List) do
 							if v == Selected then aindaExiste = true break end
 						end
 						if not aindaExiste then
-							Selected = "..." -- Limpa apenas se o jogador saiu do jogo
+							Selected = "..."
 						end
 					end
 					UpdateSelected()
 				end
+				
+				-- 🔍 NOVO: Lógica de Filtro em Tempo Real
+				SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
+					local query = string.lower(SearchBox.Text)
+					for _, item in pairs(Options) do
+						if query == "" or string.find(string.lower(item.Name), query) then
+							item.nodes[1].Visible = true
+						else
+							item.nodes[1].Visible = false
+						end
+					end
+					CalculateSize()
+				end)
 				
 				table.foreach(DOptions, AddOption)
 				UpdateSelected()
@@ -2652,7 +2713,6 @@ end
 			function Dropdown:Visible(...) Funcs:ToggleVisible(Button, ...) end
 			function Dropdown:Destroy() Button:Destroy() end
 			
-			-- Retorna o ActiveLabel interno para que scripts externos possam manipulá-lo se necessário
 			Dropdown.ActiveLabel = ActiveLabel 
 			
 			function Dropdown:Set(Val1)
