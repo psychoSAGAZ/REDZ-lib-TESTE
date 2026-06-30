@@ -3396,4 +3396,95 @@ end
 	return Window
 end
 
+-- Dentro da Lib, crie a tabela vazia:
+local CreateNotification = {}
+_G.CreateNotification = CreateNotification -- Torna global para o seu script ler
+
+-- Crie a função atrelada a ela:
+function CreateNotification:Notification(Title, Message, Duration)
+    Title = Title or "Notificação"
+    Message = Message or ""
+    Duration = Duration or 4
+
+    -- Pega as cores do tema da biblioteca
+    local CurrentTheme = MyLibrary.Themes[MyLibrary.Save.Theme] or MyLibrary.Themes["Default"]
+    local BackgroundColor = CurrentTheme and CurrentTheme["Color Hub 2"] or Color3.fromRGB(27, 5, 25)
+    local TextColor = CurrentTheme and CurrentTheme["Color Text"] or Color3.fromRGB(255, 255, 255)
+
+    local PlayerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+    local TweenService = game:GetService("TweenService")
+
+    if PlayerGui:FindFirstChild("LibNotify") then
+        PlayerGui.LibNotify:Destroy()
+    end
+
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "LibNotify"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.Parent = PlayerGui
+
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(0, 420, 0, 42)
+    Frame.Position = UDim2.new(0.5, -210, 0, -50)
+    Frame.BackgroundColor3 = BackgroundColor
+    Frame.BorderSizePixel = 0
+    Frame.Parent = ScreenGui
+
+    -- Adiciona na tabela de instâncias da Lib para mudar de cor com o tema
+    table.insert(MyLibrary.Instances, { Instance = Frame, Type = "Frame" })
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Frame
+
+    local TextLabel = Instance.new("TextLabel")
+    TextLabel.Size = UDim2.new(1, -45, 1, 0)
+    TextLabel.Position = UDim2.new(0, 10, 0, 0)
+    TextLabel.BackgroundTransparency = 1
+    TextLabel.Text = string.upper(Title)..": "..Message
+    TextLabel.TextColor3 = TextColor
+    TextLabel.Font = Enum.Font.SourceSansSemibold
+    TextLabel.TextSize = 16
+    TextLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TextLabel.Parent = Frame
+    table.insert(MyLibrary.Instances, { Instance = TextLabel, Type = "Text" })
+
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Size = UDim2.new(0, 30, 1, 0)
+    CloseBtn.Position = UDim2.new(1, -30, 0, 0)
+    CloseBtn.BackgroundTransparency = 1
+    CloseBtn.Text = "X"
+    CloseBtn.TextColor3 = TextColor
+    CloseBtn.Font = Enum.Font.SourceSansBold
+    CloseBtn.TextSize = 18
+    CloseBtn.Parent = Frame
+    table.insert(MyLibrary.Instances, { Instance = CloseBtn, Type = "Text" })
+
+    TweenService:Create(
+        Frame,
+        TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+        {Position = UDim2.new(0.5, -210, 0, 5)}
+    ):Play()
+
+    local Closed = false
+    local function Close()
+        if Closed then return end
+        Closed = true
+
+        TweenService:Create(
+            Frame,
+            TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.In),
+            {Position = UDim2.new(0.5, -210, 0, -50)}
+        ):Play()
+
+        task.delay(0.3, function()
+            ScreenGui:Destroy()
+        end)
+    end
+
+    CloseBtn.MouseButton1Click:Connect(Close)
+    task.delay(Duration, Close)
+end
+
+
 return MyLibrary
