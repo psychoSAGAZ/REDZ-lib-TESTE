@@ -556,7 +556,8 @@ local function CreateTween(Configs)
     local Tween = TweenService:Create(Instance, TweenInfo, {[Prop] = NewVal})
     Tween:Play()
     if TweenWait then
-        Tween.Completed:Wait()
+        -- ⚠️ Nunca bloqueie a thread principal; espere em paralelo se solicitado
+        task.spawn(function() Tween.Completed:Wait() end)
     end
     return Tween
 end
@@ -3095,13 +3096,14 @@ end
             end)
 
             function SetSlider(NewValue)
-                if type(NewValue) ~= "number" then return end
-                local MinReal, MaxReal = Min * Increase, Max * Increase
-                local SliderPos = (NewValue - MinReal) / (MaxReal - MinReal)
-                SetFlag(Flag, NewValue)
-                CreateTween({SliderIcon, "Position", UDim2.fromScale(math.clamp(SliderPos, 0, 1), 0.5), 0.3, true})
-            end
-            SetSlider(Default)
+    if type(NewValue) ~= "number" then return end
+    local MinReal, MaxReal = Min * Increase, Max * Increase
+    local SliderPos = (NewValue - MinReal) / (MaxReal - MinReal)
+    SetFlag(Flag, NewValue)
+    -- ⚠️ REMOVIDO o "true" no final
+    CreateTween({SliderIcon, "Position", UDim2.fromScale(math.clamp(SliderPos, 0, 1), 0.5), 0.3})
+end
+SetSlider(Default)
 
             SliderIcon:GetPropertyChangedSignal("Position"):Connect(UpdateValues)
             UpdateValues()
@@ -4698,7 +4700,7 @@ end)
                 end
                 WaitClick = false
             end
-            task.spawn(SetToggle, Default)
+            SetToggle(Default)  -- roda imediatamente, sem thread nova
 
             Button.Activated:Connect(function()
                 SetToggle(not Default)
