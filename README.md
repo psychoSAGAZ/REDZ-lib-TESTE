@@ -10,15 +10,15 @@ local PlayerMouse = Player:GetMouse()
 
 local MyLibrary = {
     Themes = {
-		Purple = {
+		Customize = {
 			["Color Hub 1"] = ColorSequence.new({
 				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(0, 0, 0)),
-				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(128, 90, 255)),
+				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(255, 0, 0)),
 				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(0, 0, 0))
 			}),
-			["Color Hub 2"] = Color3.fromRGB(30, 30, 30),
-			["Color Stroke"] = Color3.fromRGB(100, 72, 180),
-			["Color Theme"] = Color3.fromRGB(77, 52, 255),
+			["Color Hub 2"] = Color3.fromRGB(114, 0, 0),
+			["Color Stroke"] = Color3.fromRGB(84, 0, 0),
+			["Color Theme"] = Color3.fromRGB(255, 0, 0),
 			["Color Text"] = Color3.fromRGB(238, 255, 63),
 			["Color Dark Text"] = Color3.fromRGB(0, 255, 109)
 		}
@@ -29,20 +29,22 @@ local MyLibrary = {
 Save = {
     UISize = {430, 314},
     TabSize = 135,
-    Theme = "Purple",
+    Theme = "Customize",
     CustomColors = {},
     ToggleKey = "RightShift",
     GlobalTransparency = 0,
     HubTransparency = 0,
     HubImageTransparency = 0,
     StrokeTransparency = 0,
-    StrokeColor = "#FFFFFF",
-    MinimizeStrokeColor = "#5B50FF",
+    StrokeColor = "#FF0000",
+    MinimizeStrokeColor = "#FF0000",
     Font = "LuckiestGuy",
-    TopbarImage = "rbxassetid://86050226751861",
     ClickSoundEnabled = false,
     ClickSoundId = "rbxassetid://18998603679",
     ClickSoundVolume = 0.1,
+    MinimizePos = {0.15, 0.15},
+    IntroEnabled = true,
+    IntroURL = "https://raw.githubusercontent.com/psychoSAGAZ/SAGAZx-HUB/refs/heads/main/INTRO%20E%20NOME",
 },
     Settings = {},
     Connection = {},
@@ -161,6 +163,15 @@ if rawget(decoded, "ClickSoundId") and type(decoded.ClickSoundId) == "string" th
 end
 if rawget(decoded, "ClickSoundVolume") then
     MyLibrary.Save.ClickSoundVolume = tonumber(decoded.ClickSoundVolume) or 0.1
+end
+if rawget(decoded, "MinimizePos") and type(decoded.MinimizePos) == "table" and #decoded.MinimizePos == 2 then
+    MyLibrary.Save.MinimizePos = decoded.MinimizePos
+end
+if rawget(decoded, "IntroEnabled") ~= nil then
+    MyLibrary.Save.IntroEnabled = decoded.IntroEnabled == true
+end
+if rawget(decoded, "IntroURL") and type(decoded.IntroURL) == "string" then
+    MyLibrary.Save.IntroURL = decoded.IntroURL
 end
     end
 end
@@ -424,6 +435,8 @@ end
 
 local ScreenGui = Create("ScreenGui", CoreGui, {
     Name = "SAGAZx HUB",
+    IgnoreGuiInset = true,
+    DisplayOrder = 9999,  -- ⬅️ adicione isso
 }, {
     Create("UIScale", {
         Scale = UIScale,
@@ -606,9 +619,9 @@ local function SaveJson(FileName, save)
     end
 end
 
-local DEFAULT_HUB_IMAGE = "0"
-local DEFAULT_MINIMIZE_IMAGE = "rbxassetid://86050226751861"
-local DEFAULT_TOP_BAR_IMAGE = "rbxassetid://86050226751861"
+local DEFAULT_HUB_IMAGE = "https://cdn.discordapp.com/attachments/1548142290323640411/1549935068917661796/file_000000001d70820e9b5e7b24883b432b.png?ex=6ab26fc4&is=6ab11e44&hm=ea676555fed2b1d27969f937bdafc40d8d58d1c5326388a1b3981605bd3cb1ae&"
+local DEFAULT_MINIMIZE_IMAGE = "https://cdn.discordapp.com/attachments/1548142290323640411/1551719479921348659/file_00000000d864820ea7af9197cb2581ba.png?ex=6ab2fee1&is=6ab1ad61&hm=e21aa1ee63658224051ee73621871d5b91e1e2fa103486fb56dff08a028f3bbb&"
+local DEFAULT_TOP_BAR_IMAGE = "https://cdn.discordapp.com/attachments/1548142290323640411/1549938098371297450/file_0000000064cc820e9c9e1c5fa32089df.png?ex=6ab27297&is=6ab12117&hm=c6fef53d20a609b37e1329a4d972e42526e9e950da10d6babdf8b90cf09d5962&"
 
 local IMAGES_FOLDER = LibFolder .. "/imagens"
 local JSON_FILE_PATH = IMAGES_FOLDER .. "/imagens.json"
@@ -626,7 +639,7 @@ local function LoadImageSettings()
     local defaultData = {
     HubImage = DEFAULT_HUB_IMAGE,
     MinimizeImage = DEFAULT_MINIMIZE_IMAGE,
-    TopbarImage = MyLibrary.Save.TopbarImage or "rbxassetid://86050226751861",
+    TopbarImage = DEFAULT_TOP_BAR_IMAGE
 }
     if isfile and isfile(JSON_FILE_PATH) then
         local ok, decoded = pcall(function()
@@ -645,6 +658,11 @@ local function SaveImageSettings(data)
     SaveJson(JSON_FILE_PATH, data)
 end
 
+-- Guarda o último link usado para cada imagem
+local LastImageLinks = {}
+
+local LastImageLinks = {}
+
 local function ProcessAndApplyImage(objectTarget, imageInput, namePrefix)
     if not objectTarget or type(imageInput) ~= "string" or imageInput == "" then
         if objectTarget and (objectTarget:IsA("ImageLabel") or objectTarget:IsA("ImageButton")) then
@@ -655,18 +673,30 @@ local function ProcessAndApplyImage(objectTarget, imageInput, namePrefix)
 
     if imageInput:find("https://") or imageInput:find("http://") then
         if not requestFunc or not getAssetFunc then
-            warn("Executor nÃ£o suporta request/getcustomasset.")
+            warn("Executor não suporta request/getcustomasset.")
             return imageInput
         end
 
-        local fileName = IMAGES_FOLDER .. "/" .. namePrefix .. ".png"
+        -- ⚠️ USA NOME ÚNICO POR LINK (hash) para contornar cache do executor
+        local linkHash = 0
+        for i = 1, #imageInput do
+            linkHash = (linkHash * 31 + string.byte(imageInput, i)) % 2147483647
+        end
+        local fileName = IMAGES_FOLDER .. "/" .. namePrefix .. "_" .. tostring(linkHash) .. ".png"
 
+        -- 1. Se o arquivo já existe, usa direto
         if isfile and isfile(fileName) then
             local assetPath = getAssetFunc(fileName)
             if objectTarget:IsA("ImageLabel") or objectTarget:IsA("ImageButton") then
                 objectTarget.Image = assetPath
             end
+            LastImageLinks[namePrefix] = imageInput
             return assetPath
+        end
+
+        -- 2. Limpa referência visual e baixa novo
+        if objectTarget:IsA("ImageLabel") or objectTarget:IsA("ImageButton") then
+            objectTarget.Image = ""
         end
 
         local response = requestFunc({
@@ -677,8 +707,12 @@ local function ProcessAndApplyImage(objectTarget, imageInput, namePrefix)
 
         if response and response.Body then
             writefile(fileName, response.Body)
+            LastImageLinks[namePrefix] = imageInput
+
             local assetPath = getAssetFunc(fileName)
             if objectTarget:IsA("ImageLabel") or objectTarget:IsA("ImageButton") then
+                objectTarget.Image = ""
+                task.wait()
                 objectTarget.Image = assetPath
             end
             return assetPath
@@ -691,7 +725,7 @@ local function ProcessAndApplyImage(objectTarget, imageInput, namePrefix)
         if not imageInput:find("rbxassetid://") and not imageInput:find("rbxasset://") then
             formattedId = "rbxassetid://" .. imageInput
         end
-
+        LastImageLinks[namePrefix] = imageInput
         if objectTarget:IsA("ImageLabel") or objectTarget:IsA("ImageButton") then
             objectTarget.Image = formattedId
         end
@@ -1055,9 +1089,8 @@ end
 function MyLibrary:ResetTopbarImage()
     local imageLabel = MyLibrary.TopbarImageLabel
     if not imageLabel then return end
+    LastImageLinks["ImageTopbar"] = nil  -- ⚠️ força re-download
     ProcessAndApplyImage(imageLabel, DEFAULT_TOP_BAR_IMAGE, "ImageTopbar")
-    CurrentImageSettings.TopbarImage = DEFAULT_TOP_BAR_IMAGE
-    SaveImageSettings(CurrentImageSettings)
 end
 
 function MyLibrary:SetHubImageTransparency(value)
@@ -1102,17 +1135,15 @@ end
 function MyLibrary:ResetHubImage()
     local imageLabel = MyLibrary.HubImageLabel
     if not imageLabel then return end
+    LastImageLinks["Hub"] = nil  -- ⚠️ força re-download se for link HTTP
     ProcessAndApplyImage(imageLabel, DEFAULT_HUB_IMAGE, "Hub")
-    CurrentImageSettings.HubImage = DEFAULT_HUB_IMAGE
-    SaveImageSettings(CurrentImageSettings)
 end
 
 function MyLibrary:ResetMinimizeImage()
     local minimizeBtn = ScreenGui:FindFirstChild("MinimizeExternalButton")
     if not minimizeBtn then return end
+    LastImageLinks["minizebutton"] = nil  -- ⚠️ força re-download
     ProcessAndApplyImage(minimizeBtn, DEFAULT_MINIMIZE_IMAGE, "minizebutton")
-    CurrentImageSettings.MinimizeImage = DEFAULT_MINIMIZE_IMAGE
-    SaveImageSettings(CurrentImageSettings)
 end
 
 function MyLibrary:GetHubImage()
@@ -1514,12 +1545,61 @@ function MyLibrary:NotifyWithImage(Configs)
     return Notification
 end
 
+-- ═══════════════════════════════════════════════════════
+-- SISTEMA DE INTRO (carrega um loadstring antes da lib)
+-- ═══════════════════════════════════════════════════════
+local function PlayIntro()
+    if not MyLibrary.Save.IntroEnabled then return end
+
+    local introURL = MyLibrary.Save.IntroURL
+    if not introURL or introURL == "" then return end
+
+    -- Executa a intro em paralelo (não bloqueia)
+    task.spawn(function()
+        local success, err = pcall(function()
+            local source = game:HttpGet(introURL)
+            local fn = loadstring(source)
+            if fn then
+                fn()
+            else
+                warn("[INTRO] Falha ao compilar loadstring")
+            end
+        end)
+        if not success then
+            warn("[INTRO] Erro: " .. tostring(err))
+        end
+    end)
+end
+
+-- API pública pra ativar/desativar
+function MyLibrary:SetIntroEnabled(enabled)
+    enabled = enabled == true
+    MyLibrary.Save.IntroEnabled = enabled
+    SaveJson("SAGAZx HUB lib.json", MyLibrary.Save)
+end
+
+function MyLibrary:GetIntroEnabled()
+    return MyLibrary.Save.IntroEnabled
+end
+
+function MyLibrary:SetIntroURL(url)
+    if type(url) ~= "string" then return end
+    MyLibrary.Save.IntroURL = url
+    SaveJson("SAGAZx HUB lib.json", MyLibrary.Save)
+end
+
+function MyLibrary:GetIntroURL()
+    return MyLibrary.Save.IntroURL
+end
+
 
 function MyLibrary:MakeWindow(Configs)
     local WTitle = Configs[1] or Configs.Name or Configs.Title or "SAGAZx"
     local WMiniText = Configs[2] or Configs.SubTitle or "by : SAGAZx"
 
     Settings.ScriptFile = Configs[3] or Configs.SaveFolder or false
+    
+    PlayIntro()
 
 local function LoadFile()
     local File = Settings.ScriptFile
@@ -1803,18 +1883,135 @@ function Window:Minimize()
     end
 end
 
--- Cria automaticamente o botÃ£o de minimizar externo
+-- ═══════════════════════════════════════════════════════
+-- POSIÇÃO DO MINIMIZE EXTERNO (com persistência)
+-- ═══════════════════════════════════════════════════════
+local savedPos = MyLibrary.Save.MinimizePos or {0.15, 0.15}
+
 local MinimizeExternalButton = MakeDrag(Create("ImageButton", ScreenGui, {
     Size = UDim2.fromOffset(35, 35),
-    Position = UDim2.fromScale(0.15, 0.15),
+    Position = UDim2.fromScale(savedPos[1], savedPos[2]),
     BackgroundTransparency = 0,
     AutoButtonColor = false,
-    Image = "rbxassetid://86050226751861",  -- imagem padrÃ£o
+    Image = "",
     Name = "MinimizeExternalButton"
 }))
-Make("Corner", MinimizeExternalButton, UDim.new(0, 8))  -- cantos arredondados
+Make("Corner", MinimizeExternalButton, UDim.new(0, 8))
 ApplyMinimizeBorder(MinimizeExternalButton)
-MinimizeExternalButton.Activated:Connect(Window.Minimize)  -- conecta Ã  funÃ§Ã£o de minimizar
+MinimizeExternalButton.Activated:Connect(Window.Minimize)
+
+-- ═══════════════════════════════════════════════════════
+-- CLAMP: mantém o botão sempre dentro da tela
+-- ═══════════════════════════════════════════════════════
+local function ClampMinimizePos()
+    local btn = MinimizeExternalButton
+    if not btn or not btn.Parent then return end
+
+    local viewport = workspace.CurrentCamera.ViewportSize
+    local scale = UIScale or 1
+    local screenW = viewport.X / scale
+    local screenH = viewport.Y / scale
+
+    local posX = btn.Position.X.Offset
+    local posY = btn.Position.Y.Offset
+    if btn.Position.X.Scale ~= 0 then
+        posX = btn.Position.X.Scale * screenW + posX
+    end
+    if btn.Position.Y.Scale ~= 0 then
+        posY = btn.Position.Y.Scale * screenH + posY
+    end
+
+    local btnW = btn.AbsoluteSize.X / scale
+    local btnH = btn.AbsoluteSize.Y / scale
+    local maxX = math.max(0, screenW - btnW)
+    local maxY = math.max(0, screenH - btnH)
+
+    local clampedX = math.clamp(posX, 0, maxX)
+    local clampedY = math.clamp(posY, 0, maxY)
+
+    if clampedX ~= posX or clampedY ~= posY then
+        btn.Position = UDim2.fromOffset(clampedX, clampedY)
+    end
+end
+
+-- ═══════════════════════════════════════════════════════
+-- SALVAR POSIÇÃO (com debounce pra não floodar o JSON)
+-- ═══════════════════════════════════════════════════════
+local saveDebounce = false
+local function SaveMinimizePos()
+    if saveDebounce then return end
+    saveDebounce = true
+
+    task.delay(0.5, function()  -- espera 0.5s pra ver se a posição estabiliza
+        saveDebounce = false
+
+        local btn = MinimizeExternalButton
+        if not btn then return end
+
+        local viewport = workspace.CurrentCamera.ViewportSize
+        local scale = UIScale or 1
+        local screenW = viewport.X / scale
+        local screenH = viewport.Y / scale
+
+        -- Converte Offset pra Scale (normalizado)
+        local posX = btn.Position.X.Offset
+        local posY = btn.Position.Y.Offset
+        if btn.Position.X.Scale ~= 0 then
+            posX = btn.Position.X.Scale * screenW + posX
+        end
+        if btn.Position.Y.Scale ~= 0 then
+            posY = btn.Position.Y.Scale * screenH + posY
+        end
+
+        local newScaleX = posX / screenW
+        local newScaleY = posY / screenH
+
+        -- Só salva se mudou de verdade
+        local old = MyLibrary.Save.MinimizePos or {0, 0}
+        if math.abs(old[1] - newScaleX) < 0.001 and math.abs(old[2] - newScaleY) < 0.001 then
+            return
+        end
+
+        MyLibrary.Save.MinimizePos = {newScaleX, newScaleY}
+        SaveJson("SAGAZx HUB lib.json", MyLibrary.Save)
+    end)
+end
+
+-- ═══════════════════════════════════════════════════════
+-- CONEXÕES
+-- ═══════════════════════════════════════════════════════
+
+-- Clamp durante o drag
+MinimizeExternalButton:GetPropertyChangedSignal("Position"):Connect(ClampMinimizePos)
+
+-- Clamp quando a tela redimensionar
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(ClampMinimizePos)
+
+-- ⚠️ Salva quando o mouse soltar EM CIMA do botão
+MinimizeExternalButton.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        SaveMinimizePos()
+    end
+end)
+
+-- ⚠️ Também salva quando o mouse soltar em qualquer lugar (caso tenha arrastado pra fora)
+-- Mas só se o botão foi movido recentemente
+local lastMoveTime = 0
+MinimizeExternalButton:GetPropertyChangedSignal("Position"):Connect(function()
+    lastMoveTime = tick()
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        -- Só salva se o botão foi movido nos últimos 1.5s
+        if tick() - lastMoveTime < 1.5 then
+            SaveMinimizePos()
+        end
+    end
+end)
+
+-- Aplica clamp inicial
+task.defer(ClampMinimizePos)
 
 MyLibrary.MinimizeExternalButton = MinimizeExternalButton
 
@@ -3474,7 +3671,7 @@ ImageTab:AddButton({
     Name = "Resetar Imagem do Hub",
     Callback = function()
         MyLibrary:ResetHubImage()
-        if topbarImageTextBox and topbarImageTextBox.Set then
+        if hubimageTextBox and hubimageTextBox.Set then
             hubImageTextBox:Set(MyLibrary:GetTopbarImage())
         end
     end
@@ -4251,6 +4448,24 @@ ExtrasTab:AddButton({
 
 
 -- ==================== ABA DE CONFIGURAÇÕES ====================
+ConfigTab:AddSection({"Intro"})
+
+ConfigTab:AddToggle({
+    Name = "Ativar/Desativar Intro",
+    Desc = "",
+    Default = MyLibrary:GetIntroEnabled(),
+    Flag = "intro_enabled",
+    Callback = function(state)
+        MyLibrary:SetIntroEnabled(state)
+    end
+})
+
+ConfigTab:AddButton({
+    Name = "Carregar Intro",
+    Callback = function()
+        PlayIntro()
+    end
+})
 
 local ToggleKeyInput = ConfigTab:AddKeybind({
     Name = "Tecla do Hub",
@@ -4287,18 +4502,21 @@ ConfigTab:AddDropdown({
 
 -- Fim
 
--- Aplica as imagens salvas automaticamente
+-- ═══════════════════════════════════════════════════════
+-- Aplica as imagens SALVAS no JSON (se existirem)
+-- ou as constantes DEFAULT_* se o JSON estiver vazio
+-- ═══════════════════════════════════════════════════════
 task.spawn(function()
-if CurrentImageSettings.HubImage and CurrentImageSettings.HubImage ~= "" then
-    ProcessAndApplyImage(MyLibrary.HubImageLabel, CurrentImageSettings.HubImage, "Hub")
-end
+    task.wait(0.1)  -- dá 1 frame pro GUI renderizar
 
-    if CurrentImageSettings.MinimizeImage and CurrentImageSettings.MinimizeImage ~= "" then
-        ProcessAndApplyImage(MinimizeExternalButton, CurrentImageSettings.MinimizeImage, "minizebutton")
-    end
-    if CurrentImageSettings.TopbarImage and CurrentImageSettings.TopbarImage ~= "" then
-    ProcessAndApplyImage(MyLibrary.TopbarImageLabel, CurrentImageSettings.TopbarImage, "ImageTopbar")
-end
+    -- Prioriza o valor salvo no JSON; se não tiver, usa a constante
+    local hubImg = (CurrentImageSettings.HubImage and CurrentImageSettings.HubImage ~= "" and CurrentImageSettings.HubImage) or DEFAULT_HUB_IMAGE
+    local minImg = (CurrentImageSettings.MinimizeImage and CurrentImageSettings.MinimizeImage ~= "" and CurrentImageSettings.MinimizeImage) or DEFAULT_MINIMIZE_IMAGE
+    local topImg = (CurrentImageSettings.TopbarImage and CurrentImageSettings.TopbarImage ~= "" and CurrentImageSettings.TopbarImage) or DEFAULT_TOP_BAR_IMAGE
+
+    ProcessAndApplyImage(MyLibrary.HubImageLabel, hubImg, "Hub")
+    ProcessAndApplyImage(MyLibrary.MinimizeExternalButton, minImg, "minizebutton")
+    ProcessAndApplyImage(MyLibrary.TopbarImageLabel, topImg, "ImageTopbar")
 end)
 
     function Window:Set(Val1, Val2)
@@ -6455,15 +6673,24 @@ function Tab:AddDiscordInvite(Configs)
     AddTransparency(FrameHolder)
     Make("Corner", FrameHolder, UDim.new(0, 6))
 
-    -- Imagem preenchendo o fundo do frame
-    local ImageLabel = Create("ImageLabel", FrameHolder, {
-        Size = UDim2.new(1, 0, 0, 85),
-        Position = UDim2.new(0, 0, 0, 0),
-        Image = Logo,
-        BackgroundTransparency = 1,
-        ScaleType = Enum.ScaleType.Crop
-    })
-    Make("Corner", ImageLabel, UDim.new(0, 6))
+-- Imagem preenchendo o fundo do frame
+local ImageLabel = Create("ImageLabel", FrameHolder, {
+    Size = UDim2.new(1, 0, 0, 85),
+    Position = UDim2.new(0, 0, 0, 0),
+    Image = "",  -- ✅ vazio, será preenchido pelo ProcessAndApplyImage
+    BackgroundTransparency = 1,
+    ScaleType = Enum.ScaleType.Crop
+})
+Make("Corner", ImageLabel, UDim.new(0, 6))
+
+-- ⚠️ Aplica a imagem aceitando ID OU link HTTP
+if Logo and Logo ~= "" then
+    task.spawn(function()
+        -- nome único por AddDiscordInvite (usa contador pra não colidir se tiver vários)
+        local uniqueId = "DiscordInvite_" .. tostring(math.random(100000, 999999))
+        ProcessAndApplyImage(ImageLabel, Logo, uniqueId)
+    end)
+end
 
         -- Barra horizontal na parte inferior usando Color Hub 2
     local BottomBar = InsertTheme(Create("Frame", FrameHolder, {
