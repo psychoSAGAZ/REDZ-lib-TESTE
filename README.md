@@ -69,6 +69,9 @@ Save = {
     end)()
 }
 
+-- ═══════════════════════════════════════════════════════
+-- LINK DA INTRO (edite aqui pra trocar)
+-- ═══════════════════════════════════════════════════════
 local INTRO_URL = "https://raw.githubusercontent.com/psychoSAGAZ/SAGAZx-HUB/refs/heads/main/INTRO%20E%20NOME"
 
 MyLibrary.CurrentFont = Enum.Font[MyLibrary.Save.Font] or Enum.Font.LuckiestGuy
@@ -171,40 +174,11 @@ end
 if rawget(decoded, "IntroEnabled") ~= nil then
     MyLibrary.Save.IntroEnabled = decoded.IntroEnabled == true
 end
+end
     end
 end
 
 pcall(Save, "SAGAZx HUB lib.json")
-
--remove
-
--- ═══════════════════════════════════════════════════════
--- CLEANUP: remove chave IntroURL (de versões antigas)
--- ═══════════════════════════════════════════════════════
-pcall(function()
-    local JsonPath = GetFullPath("SAGAZx HUB lib.json")
-
-    if not isfile or not isfile(JsonPath) then return end
-
-    local ok, decoded = pcall(function()
-        return HttpService:JSONDecode(readfile(JsonPath))
-    end)
-    if not ok or type(decoded) ~= "table" then return end
-
-    -- Só faz algo se a chave existir
-    if decoded.IntroURL == nil then return end
-
-    decoded.IntroURL = nil
-
-    local ok2, encoded = pcall(function()
-        return HttpService:JSONEncode(decoded)
-    end)
-    if not ok2 then return end
-
-    pcall(writefile, JsonPath, encoded)
-end)
-
---remove
 
 MyLibrary.StrokeInstances = {}
 
@@ -1606,6 +1580,16 @@ end
 
 function MyLibrary:GetIntroEnabled()
     return MyLibrary.Save.IntroEnabled
+end
+
+function MyLibrary:SetIntroURL(url)
+    if type(url) ~= "string" then return end
+    MyLibrary.Save.IntroURL = url
+    SaveJson("SAGAZx HUB lib.json", MyLibrary.Save)
+end
+
+function MyLibrary:GetIntroURL()
+    return MyLibrary.Save.IntroURL
 end
 
 
@@ -4461,14 +4445,11 @@ ExtrasTab:AddButton({
     end
 })
 
-
-
 -- ==================== ABA DE CONFIGURAÇÕES ====================
 ConfigTab:AddSection({"Intro"})
 
 ConfigTab:AddToggle({
     Name = "Ativar/Desativar Intro",
-    Desc = "",
     Default = MyLibrary:GetIntroEnabled(),
     Flag = "intro_enabled",
     Callback = function(state)
@@ -4477,7 +4458,7 @@ ConfigTab:AddToggle({
 })
 
 ConfigTab:AddButton({
-    Name = "Carregar Intro",
+    Name = "Reproduzir Intro",
     Callback = function()
         PlayIntro()
     end
