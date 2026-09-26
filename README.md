@@ -43,7 +43,6 @@ Save = {
     ClickSoundId = "rbxassetid://18998603679",
     ClickSoundVolume = 0.1,
     MinimizePos = {0.15, 0.15},
-    IntroEnabled = true,
 },
     Settings = {},
     Connection = {},
@@ -68,11 +67,6 @@ Save = {
         }
     end)()
 }
-
--- ═══════════════════════════════════════════════════════
--- LINK DA INTRO (edite aqui pra trocar)
--- ═══════════════════════════════════════════════════════
-local INTRO_URL = "https://raw.githubusercontent.com/psychoSAGAZ/SAGAZx-HUB/refs/heads/main/INTRO%20E%20NOME"
 
 MyLibrary.CurrentFont = Enum.Font[MyLibrary.Save.Font] or Enum.Font.LuckiestGuy
 
@@ -171,28 +165,10 @@ end
 if rawget(decoded, "MinimizePos") and type(decoded.MinimizePos) == "table" and #decoded.MinimizePos == 2 then
     MyLibrary.Save.MinimizePos = decoded.MinimizePos
 end
-if rawget(decoded, "IntroEnabled") ~= nil then
-    MyLibrary.Save.IntroEnabled = decoded.IntroEnabled == true
-end
-end
     end
 end
 
 pcall(Save, "SAGAZx HUB lib.json")
-
--- ═══════════════════════════════════════════════════════
--- LIMPEZA: remove chaves obsoletas do JSON (roda 1x)
--- ═══════════════════════════════════════════════════════
-pcall(function()
-    local path = GetFullPath("SAGAZx HUB lib.json")
-    if isfile and isfile(path) then
-        local data = HttpService:JSONDecode(readfile(path))
-        if data.IntroURL then
-            data.IntroURL = nil
-            writefile(path, HttpService:JSONEncode(data))
-        end
-    end
-end)
 
 MyLibrary.StrokeInstances = {}
 
@@ -773,7 +749,7 @@ local function Make(Ele, Instance, props, ...)
 end
 
 AddEle("Corner", function(parent, CornerRadius)
-    -- Removida referÃªncia Ã  variÃ¡vel `props` que nÃ£o existia
+    -- Removida referÃªncia Ã  variÃ¡vel `props` que nÃ£o existia
     local New = SetProps(Create("UICorner", parent, {
         CornerRadius = CornerRadius or UDim.new(0, 7)
     }), nil)
@@ -1561,48 +1537,12 @@ function MyLibrary:NotifyWithImage(Configs)
     return Notification
 end
 
--- ═══════════════════════════════════════════════════════
--- SISTEMA DE INTRO (carrega um loadstring antes da lib)
--- ═══════════════════════════════════════════════════════
-local function PlayIntro()
-    if not MyLibrary.Save.IntroEnabled then return end
-    if not INTRO_URL or INTRO_URL == "" then return end
-
-    -- Executa a intro em paralelo (não bloqueia)
-    task.spawn(function()
-        local success, err = pcall(function()
-            local source = game:HttpGet(INTRO_URL)
-            local fn = loadstring(source)
-            if fn then
-                fn()
-            else
-                warn("[INTRO] Falha ao compilar loadstring")
-            end
-        end)
-        if not success then
-            warn("[INTRO] Erro: " .. tostring(err))
-        end
-    end)
-end
-
--- API pública: só ativar/desativar
-function MyLibrary:SetIntroEnabled(enabled)
-    enabled = enabled == true
-    MyLibrary.Save.IntroEnabled = enabled
-    SaveJson("SAGAZx HUB lib.json", MyLibrary.Save)
-end
-
-function MyLibrary:GetIntroEnabled()
-    return MyLibrary.Save.IntroEnabled
-end
 
 function MyLibrary:MakeWindow(Configs)
     local WTitle = Configs[1] or Configs.Name or Configs.Title or "SAGAZx"
     local WMiniText = Configs[2] or Configs.SubTitle or "by : SAGAZx"
 
     Settings.ScriptFile = Configs[3] or Configs.SaveFolder or false
-    
-    PlayIntro()
 
 local function LoadFile()
     local File = Settings.ScriptFile
@@ -3674,7 +3614,7 @@ ImageTab:AddButton({
     Name = "Resetar Imagem do Hub",
     Callback = function()
         MyLibrary:ResetHubImage()
-        if hubimageTextBox and hubimageTextBox.Set then
+        if topbarImageTextBox and topbarImageTextBox.Set then
             hubImageTextBox:Set(MyLibrary:GetTopbarImage())
         end
     end
@@ -4448,24 +4388,9 @@ ExtrasTab:AddButton({
     end
 })
 
+
+
 -- ==================== ABA DE CONFIGURAÇÕES ====================
-ConfigTab:AddSection({"Intro"})
-
-ConfigTab:AddToggle({
-    Name = "Ativar/Desativar Intro",
-    Default = MyLibrary:GetIntroEnabled(),
-    Flag = "intro_enabled",
-    Callback = function(state)
-        MyLibrary:SetIntroEnabled(state)
-    end
-})
-
-ConfigTab:AddButton({
-    Name = "Reproduzir Intro",
-    Callback = function()
-        PlayIntro()
-    end
-})
 
 local ToggleKeyInput = ConfigTab:AddKeybind({
     Name = "Tecla do Hub",
