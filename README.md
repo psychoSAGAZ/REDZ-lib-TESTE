@@ -180,6 +180,20 @@ end
 
 pcall(Save, "SAGAZx HUB lib.json")
 
+-- ═══════════════════════════════════════════════════════
+-- LIMPEZA: remove chaves obsoletas do JSON (roda 1x)
+-- ═══════════════════════════════════════════════════════
+pcall(function()
+    local path = GetFullPath("SAGAZx HUB lib.json")
+    if isfile and isfile(path) then
+        local data = HttpService:JSONDecode(readfile(path))
+        if data.IntroURL then
+            data.IntroURL = nil
+            writefile(path, HttpService:JSONEncode(data))
+        end
+    end
+end)
+
 MyLibrary.StrokeInstances = {}
 
 local function UpdateStroke(stroke)
@@ -759,7 +773,7 @@ local function Make(Ele, Instance, props, ...)
 end
 
 AddEle("Corner", function(parent, CornerRadius)
-    -- Removida referÃªncia Ã  variÃ¡vel `props` que nÃ£o existia
+    -- Removida referÃªncia Ã  variÃ¡vel `props` que nÃ£o existia
     local New = SetProps(Create("UICorner", parent, {
         CornerRadius = CornerRadius or UDim.new(0, 7)
     }), nil)
@@ -1581,17 +1595,6 @@ end
 function MyLibrary:GetIntroEnabled()
     return MyLibrary.Save.IntroEnabled
 end
-
-function MyLibrary:SetIntroURL(url)
-    if type(url) ~= "string" then return end
-    MyLibrary.Save.IntroURL = url
-    SaveJson("SAGAZx HUB lib.json", MyLibrary.Save)
-end
-
-function MyLibrary:GetIntroURL()
-    return MyLibrary.Save.IntroURL
-end
-
 
 function MyLibrary:MakeWindow(Configs)
     local WTitle = Configs[1] or Configs.Name or Configs.Title or "SAGAZx"
